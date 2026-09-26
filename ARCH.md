@@ -13,7 +13,8 @@
 ├── orders.html           내 결제 내역 (비회원: 이 브라우저의 주문)
 ├── guest-order.html      비회원 주문 조회
 ├── admin.html            관리자: 전체 결제 내역
-├── css/style.css         공통 스타일
+├── css/style.css         공통 스타일 (규칙: .claude/skills/goods_shop_design_funcoding)
+├── images/products/      상품 사진 (Unsplash License, 출처는 CREDITS.md)
 ├── js/
 │   ├── config.js         공개 설정값 (Supabase URL/키, 토스 클라이언트 키)
 │   ├── cart.js           장바구니 (localStorage)
@@ -21,6 +22,7 @@
 └── supabase/
     ├── migrations/001_init.sql          테이블·RLS·함수·예시 상품
     ├── migrations/002_guest_checkout.sql 비회원 구매 (is_guest, create_order 교체, find_guest_order)
+    ├── migrations/003_product_photos.sql 상품 사진 경로 입력, emoji 칸 삭제
     └── functions/confirm-payment/index.ts  결제 승인 Edge Function
 ```
 
@@ -47,7 +49,7 @@ localStorage 키 `goods-cart`에 `[{ product_id, quantity }]` 저장.
 ## 데이터베이스
 | 테이블 | 주요 컬럼 |
 |---|---|
-| `products` | `id`, `name`, `description`, `price`, `emoji`, `image_url`(선택) |
+| `products` | `id`, `name`, `description`, `price`, `image_url`(사이트 기준 상대 경로, 예: `images/products/mug.jpg`. 없으면 화면에 상품 이름 글자를 표시) |
 | `orders` | `id`(uuid, 토스 orderId로 사용), `user_id`, `user_email`(비회원은 입력한 연락 이메일), `is_guest`, `order_name`, `total_amount`, `status`(`pending`/`paid`/`failed`), `payment_key`, `payment_method`, `approved_at`, `created_at` |
 | `order_items` | `order_id`, `product_id`, `product_name`, `unit_price`(주문 시점 가격), `quantity`(1~99) |
 | `admins` | `user_id` — 관리자 목록 |

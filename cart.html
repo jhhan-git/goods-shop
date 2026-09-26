@@ -77,7 +77,7 @@
         const p = products[i.product_id];
         return `
           <div class="cart-line">
-            <div class="cart-emoji">${esc(p.emoji)}</div>
+            <div class="cart-thumb">${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : ""}</div>
             <div>
               <div class="cart-name">${esc(p.name)}</div>
               <div class="cart-price">${won(p.price)} × ${i.quantity} = <b>${won(p.price * i.quantity)}</b></div>

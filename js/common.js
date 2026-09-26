@@ -106,7 +106,7 @@ async function renderNav() {
     `<a href="${href}" class="${here === href ? "active" : ""}">${label}</a>`;
 
   nav.innerHTML = `
-    <a href="index.html" class="logo">🛍️ 굿즈샵</a>
+    <a href="index.html" class="logo">굿즈샵</a>
     <div class="nav-links">
       ${link("index.html", "상품")}
       ${link("cart.html", `장바구니 <span id="cart-count" class="count" hidden></span>`)}

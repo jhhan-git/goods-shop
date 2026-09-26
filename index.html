@@ -29,7 +29,9 @@
       }
       box.innerHTML = data.map((p) => `
         <article class="card product">
-          <div class="product-thumb">${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : esc(p.emoji)}</div>
+          <div class="product-thumb">${p.image_url
+            ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}" loading="lazy">`
+            : `<span class="product-thumb-name">${esc(p.name)}</span>`}</div>
           <div class="product-body">
             <div class="product-name">${esc(p.name)}</div>
             <div class="product-desc">${esc(p.description)}</div>
@@ -41,7 +43,7 @@
       box.querySelectorAll("button[data-id]").forEach((btn) => {
         btn.addEventListener("click", () => {
           addToCart(Number(btn.dataset.id), 1);
-          toast("장바구니에 담았어요 🛒");
+          toast("장바구니에 담았어요");
         });
       });
     }

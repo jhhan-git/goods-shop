@@ -15,7 +15,6 @@
 
   <main class="container container-narrow">
     <div id="box" class="card result">
-      <div class="result-icon">⏳</div>
       <h1>결제를 확인하고 있어요</h1>
       <p class="subtitle">이 창을 닫지 말고 기다려 주세요.</p>
     </div>
@@ -50,7 +49,6 @@
       clearCart();
       const order = data.order;
       box.innerHTML = `
-        <div class="result-icon">🎉</div>
         <h1>결제를 완료했어요</h1>
         <div class="result-rows">
           <div><span>주문 상품</span><span>${esc(order.order_name)}</span></div>

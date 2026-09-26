@@ -36,6 +36,8 @@
 - 관리자 판별은 `admins` 테이블 + `is_admin()` 함수. 관리자 계정: `admin@admin.com` (비밀번호는 저장소에 기록하지 않음).
 - DB 스키마 변경은 `supabase/migrations/`에 SQL 파일을 추가하고 Supabase MCP `apply_migration`으로 적용.
 - 새 파일에서도 사용자 입력/DB 값을 HTML에 넣을 때는 `esc()`로 이스케이프.
+- **화면·디자인 작업은 `goods_shop_design_funcoding` 스킬을 따른다.** 특히 금지 규칙: 이모지·아이콘 금지(글자로만), 정해진 색 변수만, 같은 뜻은 같은 단어.
+- 상품 사진은 `images/products/`에 800×600 JPG로 넣고 `products.image_url`에 상대 경로를 저장한다. 외부 사진을 쓰면 `images/products/CREDITS.md`에 출처를 적는다.
 
 ## 배포
 - 화면: `main`에 push하면 GitHub Pages가 자동 배포(1~2분).

@@ -60,8 +60,8 @@
         </div>
         ${order.is_guest ? `
         <p class="notice">
-          비회원 주문이에요. <b>주문번호</b>와 <b>${esc(order.user_email)}</b>로 언제든 주문을 조회할 수 있어요.
-          주문번호는 이 이메일로도 기억해 두세요.
+          비회원 주문이에요. <b>주문번호</b>와 주문할 때 입력한 이메일(<b>${esc(order.user_email)}</b>)로
+          언제든 주문을 조회할 수 있어요. 주문번호를 따로 적어 두세요.
         </p>` : ""}
         <div class="result-actions">
           <a class="btn" href="${order.is_guest ? `guest-order.html?orderId=${encodeURIComponent(order.id)}` : "orders.html"}">

@@ -58,8 +58,15 @@
           <div><span>결제 수단</span><span>${esc(order.payment_method || "-")}</span></div>
           <div><span>주문 번호</span><span class="order-id">${esc(order.id)}</span></div>
         </div>
+        ${order.is_guest ? `
+        <p class="notice">
+          비회원 주문이에요. <b>주문번호</b>와 <b>${esc(order.user_email)}</b>로 언제든 주문을 조회할 수 있어요.
+          주문번호는 이 이메일로도 기억해 두세요.
+        </p>` : ""}
         <div class="result-actions">
-          <a class="btn" href="orders.html">내 결제 내역 보기</a>
+          <a class="btn" href="${order.is_guest ? `guest-order.html?orderId=${encodeURIComponent(order.id)}` : "orders.html"}">
+            ${order.is_guest ? "비회원 주문 조회" : "내 결제 내역 보기"}
+          </a>
           <a class="btn btn-ghost" href="index.html">쇼핑 계속하기</a>
         </div>`;
     }

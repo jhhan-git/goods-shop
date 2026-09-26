@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>비회원 주문 조회 · 굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container" style="max-width: 720px">
+    <h1>비회원 주문 조회</h1>
+    <p class="subtitle">결제 완료 화면에 나온 주문번호와 주문할 때 입력한 이메일을 넣어 주세요.</p>
+
+    <form id="lookup-form" class="card" style="margin-bottom: 16px">
+      <div class="field">
+        <label for="order-id">주문번호</label>
+        <input id="order-id" required placeholder="예: 7a9a80b5-79ea-483e-9796-6b82f4b2f977">
+      </div>
+      <div class="field">
+        <label for="email">이메일</label>
+        <input id="email" type="email" required autocomplete="email" placeholder="you@example.com">
+      </div>
+      <p id="error" class="error"></p>
+      <button id="submit" class="btn btn-block" type="submit">조회하기</button>
+    </form>
+
+    <div id="result"></div>
+  </main>
+
+  <script>
+    const orderIdInput = document.getElementById("order-id");
+    const params = new URLSearchParams(location.search);
+    if (params.get("orderId")) orderIdInput.value = params.get("orderId");
+
+    document.getElementById("lookup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById("error");
+      const result = document.getElementById("result");
+      const orderId = orderIdInput.value.trim();
+      errorBox.textContent = "";
+      result.innerHTML = "";
+
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
+        errorBox.textContent = "주문번호 형식이 올바르지 않아요. 결제 완료 화면의 주문번호 전체를 넣어 주세요.";
+        return;
+      }
+
+      const btn = document.getElementById("submit");
+      btn.disabled = true;
+      const { data: o, error } = await sb.rpc("find_guest_order", {
+        p_order_id: orderId,
+        p_email: document.getElementById("email").value,
+      });
+      btn.disabled = false;
+
+      if (error) {
+        errorBox.textContent = "조회하지 못했어요: " + error.message;
+        return;
+      }
+      if (!o) {
+        errorBox.textContent = "주문을 찾을 수 없어요. 주문번호와 이메일을 다시 확인해 주세요.";
+        return;
+      }
+
+      result.innerHTML = `
+        <article class="card order">
+          <div class="order-head">
+            <span class="order-date">${formatDate(o.approved_at || o.created_at)}</span>
+            ${statusBadge(o.status)}
+          </div>
+          <ul class="order-items">
+            ${o.order_items.map((i) => `
+              <li><span>${esc(i.product_name)} × ${i.quantity}</span><span>${won(i.unit_price * i.quantity)}</span></li>`).join("")}
+          </ul>
+          <div class="order-foot"><span>합계${o.payment_method ? ` · ${esc(o.payment_method)}` : ""}</span><span>${won(o.total_amount)}</span></div>
+          <div class="order-id">주문번호 ${esc(o.id)}</div>
+        </article>`;
+    });
+  </script>
+</body>
+</html>

@@ -26,7 +26,7 @@
       <div class="stats">
         <div class="card"><div class="stat-label">결제 완료 금액</div><div class="stat-value" id="stat-revenue">0원</div></div>
         <div class="card"><div class="stat-label">결제 완료 건수</div><div class="stat-value" id="stat-paid">0건</div></div>
-        <div class="card"><div class="stat-label">구매한 회원 수</div><div class="stat-value" id="stat-buyers">0명</div></div>
+        <div class="card"><div class="stat-label">구매자 수 (회원+비회원)</div><div class="stat-value" id="stat-buyers">0명</div></div>
       </div>
 
       <div class="card">
@@ -75,7 +75,7 @@
         : list.map((o) => `
           <tr>
             <td>${formatDate(o.approved_at || o.created_at)}<div class="order-id">${esc(o.id.slice(0, 8))}</div></td>
-            <td>${esc(o.user_email)}</td>
+            <td>${esc(o.user_email)}${o.is_guest ? ` <span class="badge badge-guest">비회원</span>` : ""}</td>
             <td>${o.order_items.map((i) => `${esc(i.product_name)} × ${i.quantity}`).join("<br>")}</td>
             <td>${esc(o.payment_method || "-")}</td>
             <td class="num">${won(o.total_amount)}</td>

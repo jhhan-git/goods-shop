@@ -6,6 +6,11 @@ async function getUser() {
   return session ? session.user : null;
 }
 
+// 비회원(익명 로그인) 사용자인지
+function isGuest(user) {
+  return !!(user && user.is_anonymous);
+}
+
 async function isAdmin() {
   const { data, error } = await sb.rpc("is_admin");
   return !error && data === true;
@@ -60,7 +65,9 @@ async function renderNav() {
   const nav = document.getElementById("nav");
   if (!nav) return;
   const user = await getUser();
-  const admin = user ? await isAdmin() : false;
+  const guest = isGuest(user);
+  const member = user && !guest;
+  const admin = member ? await isAdmin() : false;
   const here = location.pathname.split("/").pop() || "index.html";
   const link = (href, label) =>
     `<a href="${href}" class="${here === href ? "active" : ""}">${label}</a>`;
@@ -70,9 +77,11 @@ async function renderNav() {
     <div class="nav-links">
       ${link("index.html", "상품")}
       ${link("cart.html", `장바구니 <span id="cart-count" class="count" hidden></span>`)}
-      ${user ? link("orders.html", "내 결제 내역") : ""}
+      ${member ? link("orders.html", "내 결제 내역") : ""}
+      ${guest ? link("orders.html", "비회원 주문 내역") : ""}
+      ${!member ? link("guest-order.html", "비회원 주문 조회") : ""}
       ${admin ? link("admin.html", "관리자") : ""}
-      ${user
+      ${member
         ? `<span class="user-email">${esc(user.email)}</span><button id="logout-btn" class="btn btn-small btn-ghost">로그아웃</button>`
         : link("login.html", "로그인")}
     </div>`;

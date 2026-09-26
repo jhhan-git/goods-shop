@@ -10,7 +10,8 @@
 ├── success.html          결제 성공 → 서버 승인 요청
 ├── fail.html             결제 실패 안내
 ├── login.html            회원가입 / 로그인
-├── orders.html           내 결제 내역
+├── orders.html           내 결제 내역 (비회원: 이 브라우저의 주문)
+├── guest-order.html      비회원 주문 조회
 ├── admin.html            관리자: 전체 결제 내역
 ├── css/style.css         공통 스타일
 ├── js/
@@ -19,6 +20,7 @@
 │   └── common.js         Supabase 클라이언트, 로그인 확인, 상단 메뉴, 도우미
 └── supabase/
     ├── migrations/001_init.sql          테이블·RLS·함수·예시 상품
+    ├── migrations/002_guest_checkout.sql 비회원 구매 (is_guest, create_order 교체, find_guest_order)
     └── functions/confirm-payment/index.ts  결제 승인 Edge Function
 ```
 
@@ -31,7 +33,8 @@
 | 이름 | 설명 |
 |---|---|
 | `sb` | Supabase 클라이언트 |
-| `getUser()` | 현재 로그인 사용자 또는 `null` |
+| `getUser()` | 현재 로그인 사용자 또는 `null` (비회원 임시 계정 포함) |
+| `isGuest(user)` | 비회원(익명 로그인) 사용자인지 |
 | `isAdmin()` | `rpc('is_admin')` 결과 |
 | `requireLogin()` | 비로그인 시 `login.html?next=<현재 페이지>`로 이동 |
 | `renderNav()` | `#nav`에 상단 메뉴 렌더 (DOMContentLoaded 시 자동) |
@@ -45,7 +48,7 @@ localStorage 키 `goods-cart`에 `[{ product_id, quantity }]` 저장.
 | 테이블 | 주요 컬럼 |
 |---|---|
 | `products` | `id`, `name`, `description`, `price`, `emoji`, `image_url`(선택) |
-| `orders` | `id`(uuid, 토스 orderId로 사용), `user_id`, `user_email`, `order_name`, `total_amount`, `status`(`pending`/`paid`/`failed`), `payment_key`, `payment_method`, `approved_at`, `created_at` |
+| `orders` | `id`(uuid, 토스 orderId로 사용), `user_id`, `user_email`(비회원은 입력한 연락 이메일), `is_guest`, `order_name`, `total_amount`, `status`(`pending`/`paid`/`failed`), `payment_key`, `payment_method`, `approved_at`, `created_at` |
 | `order_items` | `order_id`, `product_id`, `product_name`, `unit_price`(주문 시점 가격), `quantity`(1~99) |
 | `admins` | `user_id` — 관리자 목록 |
 
@@ -61,7 +64,19 @@ localStorage 키 `goods-cart`에 `[{ product_id, quantity }]` 저장.
 
 ### 함수
 - `is_admin() → boolean` — `admins`에 현재 사용자가 있는지. authenticated만 실행 가능.
-- `create_order(items jsonb) → (order_id, amount, order_name)` — 장바구니 `[{product_id, quantity}]`를 받아 같은 상품은 합치고, **DB 가격으로 금액을 계산**해 `pending` 주문과 주문상품을 만든다. 없는 상품/잘못된 수량이면 예외(트랜잭션 전체 취소). 주문명은 `"첫 상품명 외 N건"`.
+- `create_order(items jsonb, guest_email text default null) → (order_id, amount, order_name)` — 비회원(JWT `is_anonymous`)이면 `guest_email`이 필수이고 소문자로 저장, `is_guest=true`. 장바구니 `[{product_id, quantity}]`를 받아 같은 상품은 합치고, **DB 가격으로 금액을 계산**해 `pending` 주문과 주문상품을 만든다. 없는 상품/잘못된 수량이면 예외(트랜잭션 전체 취소). 주문명은 `"첫 상품명 외 N건"`.
+
+- `find_guest_order(p_order_id uuid, p_email text) → jsonb` — 비회원 주문 조회. 주문번호와 이메일이 모두 맞고 `pending`이 아닌 비회원 주문만 돌려준다(`user_id`, `payment_key` 제외, `order_items` 포함). anon도 실행 가능.
+
+## 비회원 구매
+```
+[cart.html] 비회원으로 구매하기 → sb.auth.signInAnonymously() → 임시 계정 세션
+  → 주문 확인용 이메일 입력칸 표시 → rpc('create_order', { items, guest_email }) → 이후 결제 흐름은 회원과 동일
+[success.html] 비회원이면 주문번호+이메일 조회 안내, guest-order.html 링크
+[guest-order.html] rpc('find_guest_order') — 다른 기기/브라우저에서도 조회 가능
+```
+- 익명 사용자는 `authenticated` 역할이라 기존 RLS(본인 주문만)가 그대로 적용된다.
+- 익명 세션은 그 브라우저에만 있으므로 `orders.html`은 같은 브라우저의 비회원 주문만 보여 준다.
 
 ## 결제 흐름
 ```
@@ -101,5 +116,6 @@ localStorage 키 `goods-cart`에 `[{ product_id, quantity }]` 저장.
 
 ## Auth 설정
 - 이메일 인증 끔 (`mailer_autoconfirm: true`), 비밀번호 최소 6자
+- 익명 로그인 켬 (`external_anonymous_users_enabled: true`, IP당 시간당 30회 제한)
 - `site_url`: `https://jhhan-git.github.io/goods-shop/`
 - 관리자 계정 `admin@admin.com`은 Admin API로 생성 후 `admins`에 등록

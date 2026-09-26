@@ -14,8 +14,8 @@
   <nav id="nav" class="nav"></nav>
 
   <main class="container" style="max-width: 720px">
-    <h1>내 결제 내역</h1>
-    <p class="subtitle">결제를 시도한 주문을 최신순으로 보여 드려요.</p>
+    <h1 id="title">내 결제 내역</h1>
+    <p class="subtitle" id="subtitle">결제를 시도한 주문을 최신순으로 보여 드려요.</p>
     <div id="orders"><p class="loading">불러오는 중…</p></div>
   </main>
 
@@ -23,6 +23,11 @@
     async function loadOrders() {
       const user = await requireLogin();
       const box = document.getElementById("orders");
+      if (isGuest(user)) {
+        document.getElementById("title").textContent = "비회원 주문 내역";
+        document.getElementById("subtitle").innerHTML =
+          `이 브라우저에서 비회원으로 주문한 내역이에요. 다른 기기에서는 <a href="guest-order.html"><u>비회원 주문 조회</u></a>를 이용해 주세요.`;
+      }
 
       // 결제창을 열기만 하고 끝나지 않은 '결제 대기' 주문은 빼고 보여 준다
       const { data, error } = await sb

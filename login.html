@@ -36,6 +36,9 @@
         <p id="error" class="error"></p>
         <button id="submit" class="btn btn-block" type="submit">로그인</button>
       </form>
+      <p class="hint" style="text-align: center; margin: 16px 0 0">
+        회원가입 없이 사셨나요? <a href="guest-order.html"><u>비회원 주문 조회</u></a>
+      </p>
     </div>
   </main>
 
@@ -98,8 +101,8 @@
       location.href = nextPage();
     });
 
-    // 이미 로그인되어 있으면 바로 이동
-    getUser().then((user) => { if (user) location.replace(nextPage()); });
+    // 이미 회원으로 로그인되어 있으면 바로 이동 (비회원 임시 계정은 제외)
+    getUser().then((user) => { if (user && !isGuest(user)) location.replace(nextPage()); });
   </script>
 </body>
 </html>

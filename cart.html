@@ -33,11 +33,18 @@
         <div class="total-row"><span>총 결제 금액</span><span id="total">0원</span></div>
 
         <div id="need-login" hidden>
-          <p class="notice">결제하려면 로그인이 필요해요.</p>
+          <p class="notice">회원은 로그인 후 결제하고, 비회원은 이메일만 입력하면 바로 살 수 있어요.</p>
           <a class="btn btn-block" href="login.html?next=cart.html">로그인하고 결제하기</a>
+          <button id="guest-btn" class="btn btn-block btn-ghost" style="margin-top: 8px">비회원으로 구매하기</button>
+          <p id="guest-error" class="error"></p>
         </div>
 
         <div id="checkout" hidden>
+          <div id="guest-field" class="field" hidden>
+            <label for="guest-email">주문 확인용 이메일 (비회원)</label>
+            <input id="guest-email" type="email" autocomplete="email" placeholder="you@example.com">
+            <span class="hint">주문번호와 이 이메일로 나중에 주문을 조회할 수 있어요.</span>
+          </div>
           <div id="payment-method"></div>
           <div id="agreement"></div>
           <p id="pay-error" class="error"></p>
@@ -122,8 +129,16 @@
       payBtn.disabled = true;
 
       try {
+        const guest = isGuest(user);
+        const guestEmail = document.getElementById("guest-email").value.trim();
+        if (guest && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(guestEmail)) {
+          throw new Error("주문 확인에 쓸 이메일을 정확히 입력해 주세요.");
+        }
+
         // 1. 주문 만들기 (금액은 서버가 DB 가격으로 계산)
-        const { data, error } = await sb.rpc("create_order", { items: cartLines() });
+        const { data, error } = await sb.rpc("create_order", guest
+          ? { items: cartLines(), guest_email: guestEmail }
+          : { items: cartLines() });
         if (error) throw error;
         const order = data[0];
 
@@ -137,7 +152,7 @@
           orderName: order.order_name,
           successUrl: base + "success.html",
           failUrl: base + "fail.html",
-          customerEmail: user.email,
+          customerEmail: guest ? guestEmail : user.email,
         });
       } catch (err) {
         errorBox.textContent = err.code === "USER_CANCEL" ? "결제를 취소했어요." : (err.message || "결제를 시작하지 못했어요.");
@@ -159,13 +174,36 @@
         document.getElementById("need-login").hidden = false;
         return;
       }
+      await showCheckout();
+    }
+
+    async function showCheckout() {
+      document.getElementById("need-login").hidden = true;
       document.getElementById("checkout").hidden = false;
+      document.getElementById("guest-field").hidden = !isGuest(user);
       try {
         await setupWidget();
       } catch (err) {
         document.getElementById("pay-error").textContent = "결제창을 준비하지 못했어요: " + err.message;
       }
     }
+
+    // 비회원 구매: 익명 로그인으로 임시 계정을 받아 결제를 진행한다
+    document.getElementById("guest-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("guest-btn");
+      btn.disabled = true;
+      const { data, error } = await sb.auth.signInAnonymously();
+      if (error) {
+        document.getElementById("guest-error").textContent = "비회원 구매를 시작하지 못했어요: " + error.message;
+        btn.disabled = false;
+        return;
+      }
+      user = data.user;
+      renderNav();
+      await showCheckout();
+      document.getElementById("guest-email").focus();
+    });
+
     init();
   </script>
 </body>

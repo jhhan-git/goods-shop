@@ -27,6 +27,12 @@ async function requireLogin() {
   return user;
 }
 
+// 화면에 보여 줄 오류 문구. 우리 서버가 만든 한국어 문구는 그대로, 영어 오류는 fallback 문구로 바꾼다.
+function errorText(err, fallback) {
+  const message = (err && err.message) || "";
+  return /[가-힣]/.test(message) ? message : fallback;
+}
+
 function won(n) {
   return Number(n).toLocaleString("ko-KR") + "원";
 }

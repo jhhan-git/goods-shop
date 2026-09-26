@@ -19,7 +19,7 @@
     <p class="subtitle">수량을 확인하고 결제해 주세요. 테스트 결제라 실제로 돈이 나가지 않아요.</p>
 
     <div id="empty" class="card empty" hidden>
-      장바구니가 비어 있어요.<br><br>
+      <p>장바구니가 비어 있어요.</p>
       <a class="btn" href="index.html">상품 보러 가기</a>
     </div>
 
@@ -33,17 +33,17 @@
         <div class="total-row"><span>총 결제 금액</span><span id="total">0원</span></div>
 
         <div id="need-login" hidden>
-          <p class="notice">회원은 로그인 후 결제하고, 비회원은 이메일만 입력하면 바로 살 수 있어요.</p>
+          <p class="notice">회원은 로그인한 뒤 결제하고, 비회원은 이메일만 입력하면 바로 결제할 수 있어요.</p>
           <a class="btn btn-block" href="login.html?next=cart.html">로그인하고 결제하기</a>
-          <button id="guest-btn" class="btn btn-block btn-ghost" style="margin-top: 8px">비회원으로 구매하기</button>
+          <button id="guest-btn" class="btn btn-block btn-ghost">비회원으로 결제하기</button>
           <p id="guest-error" class="error"></p>
         </div>
 
         <div id="checkout" hidden>
           <div id="guest-field" class="field" hidden>
-            <label for="guest-email">주문 확인용 이메일 (비회원)</label>
+            <label for="guest-email">주문 확인용 이메일</label>
             <input id="guest-email" type="email" autocomplete="email" placeholder="you@example.com">
-            <span class="hint">주문번호와 이 이메일로 나중에 주문을 조회할 수 있어요.</span>
+            <span class="hint">비회원 주문 조회에 필요해요. 주문번호와 이 이메일로 조회할 수 있어요.</span>
           </div>
           <div id="payment-method"></div>
           <div id="agreement"></div>
@@ -88,7 +88,7 @@
                 <span>${i.quantity}</span>
                 <button data-act="plus" data-id="${p.id}" aria-label="수량 늘리기">+</button>
               </div>
-              <button class="link-btn" data-act="remove" data-id="${p.id}">삭제</button>
+              <button class="btn btn-danger btn-small" data-act="remove" data-id="${p.id}">삭제</button>
             </div>
           </div>`;
       }).join("");
@@ -105,7 +105,10 @@
       const line = getCart().find((i) => i.product_id === id);
       if (btn.dataset.act === "plus") setCartQuantity(id, line.quantity + 1);
       if (btn.dataset.act === "minus") setCartQuantity(id, line.quantity - 1);
-      if (btn.dataset.act === "remove") removeFromCart(id);
+      if (btn.dataset.act === "remove") {
+        if (!confirm("삭제할까요?")) return;
+        removeFromCart(id);
+      }
       render();
     });
 
@@ -155,7 +158,7 @@
           customerEmail: guest ? guestEmail : user.email,
         });
       } catch (err) {
-        errorBox.textContent = err.code === "USER_CANCEL" ? "결제를 취소했어요." : (err.message || "결제를 시작하지 못했어요.");
+        errorBox.textContent = err.code === "USER_CANCEL" ? "결제를 취소했어요." : errorText(err, "결제를 시작하지 못했어요. 잠시 후 다시 시도해 주세요.");
         payBtn.disabled = false;
       }
     });
@@ -184,7 +187,7 @@
       try {
         await setupWidget();
       } catch (err) {
-        document.getElementById("pay-error").textContent = "결제창을 준비하지 못했어요: " + err.message;
+        document.getElementById("pay-error").textContent = "결제창을 준비하지 못했어요. 페이지를 새로고침해 주세요.";
       }
     }
 
@@ -194,7 +197,7 @@
       btn.disabled = true;
       const { data, error } = await sb.auth.signInAnonymously();
       if (error) {
-        document.getElementById("guest-error").textContent = "비회원 구매를 시작하지 못했어요: " + error.message;
+        document.getElementById("guest-error").textContent = "비회원 결제를 시작하지 못했어요. 잠시 후 다시 시도해 주세요.";
         btn.disabled = false;
         return;
       }

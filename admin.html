@@ -15,7 +15,7 @@
 
   <main class="container">
     <div id="denied" class="card empty" hidden>
-      🔒 관리자만 볼 수 있는 페이지예요.<br><br>
+      <p>🔒 관리자만 볼 수 있는 페이지예요.</p>
       <a class="btn" href="index.html">홈으로</a>
     </div>
 
@@ -24,7 +24,7 @@
       <p class="subtitle">모든 회원의 주문과 결제 상태를 확인할 수 있어요.</p>
 
       <div class="stats">
-        <div class="card"><div class="stat-label">결제 완료 금액</div><div class="stat-value" id="stat-revenue">0원</div></div>
+        <div class="card"><div class="stat-label">총 결제 금액 (결제 완료)</div><div class="stat-value" id="stat-revenue">0원</div></div>
         <div class="card"><div class="stat-label">결제 완료 건수</div><div class="stat-value" id="stat-paid">0건</div></div>
         <div class="card"><div class="stat-label">구매자 수 (회원+비회원)</div><div class="stat-value" id="stat-buyers">0명</div></div>
       </div>
@@ -43,7 +43,7 @@
           <table>
             <thead>
               <tr>
-                <th>일시</th><th>구매자</th><th>상품</th><th>결제수단</th><th class="num">금액</th><th>상태</th>
+                <th>결제 일시</th><th>구매자</th><th>상품</th><th>결제 수단</th><th class="num">결제 금액</th><th>결제 상태</th>
               </tr>
             </thead>
             <tbody id="rows"><tr><td colspan="6" class="loading">불러오는 중…</td></tr></tbody>
@@ -71,7 +71,7 @@
         (!q || o.user_email.toLowerCase().includes(q) || o.order_items.some((i) => i.product_name.toLowerCase().includes(q))));
 
       document.getElementById("rows").innerHTML = list.length === 0
-        ? `<tr><td colspan="6" class="empty">해당하는 결제 내역이 없어요.</td></tr>`
+        ? `<tr><td colspan="6" class="empty">조건에 맞는 결제 내역이 없어요.</td></tr>`
         : list.map((o) => `
           <tr>
             <td>${formatDate(o.approved_at || o.created_at)}<div class="order-id">${esc(o.id.slice(0, 8))}</div></td>
@@ -98,7 +98,7 @@
         .order("created_at", { ascending: false })
         .limit(1000);
       if (error) {
-        document.getElementById("rows").innerHTML = `<tr><td colspan="6" class="error">불러오지 못했어요: ${esc(error.message)}</td></tr>`;
+        document.getElementById("rows").innerHTML = `<tr><td colspan="6" class="error">결제 내역을 불러오지 못했어요. 페이지를 새로고침해 주세요.</td></tr>`;
         return;
       }
       orders = data;

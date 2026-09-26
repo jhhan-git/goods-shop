@@ -36,9 +36,10 @@
         <p id="error" class="error"></p>
         <button id="submit" class="btn btn-block" type="submit">로그인</button>
       </form>
-      <p class="hint" style="text-align: center; margin: 16px 0 0">
-        회원가입 없이 사셨나요? <a href="guest-order.html"><u>비회원 주문 조회</u></a>
-      </p>
+      <div class="form-foot">
+        <span class="hint">회원가입 없이 결제하셨나요?</span>
+        <a class="btn btn-ghost btn-block" href="guest-order.html">비회원 주문 조회</a>
+      </div>
     </div>
   </main>
 
@@ -60,7 +61,10 @@
       if (/already registered|already been registered/i.test(message)) return "이미 가입된 이메일이에요. 로그인해 주세요.";
       if (/at least 6/i.test(message)) return "비밀번호는 6자 이상이어야 해요.";
       if (/valid email|invalid format/i.test(message)) return "이메일 형식이 올바르지 않아요.";
-      return message;
+      if (/rate limit|too many/i.test(message)) return "요청이 너무 많아요. 잠시 후 다시 시도해 주세요.";
+      return mode === "signup"
+        ? "회원가입하지 못했어요. 잠시 후 다시 시도해 주세요."
+        : "로그인하지 못했어요. 잠시 후 다시 시도해 주세요.";
     }
 
     document.querySelectorAll(".tab").forEach((tab) => {

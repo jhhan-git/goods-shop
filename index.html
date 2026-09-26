@@ -24,7 +24,7 @@
       const box = document.getElementById("products");
       const { data, error } = await sb.from("products").select("*").order("id");
       if (error) {
-        box.innerHTML = `<p class="error">상품을 불러오지 못했어요: ${esc(error.message)}</p>`;
+        box.innerHTML = `<p class="error">상품을 불러오지 못했어요. 페이지를 새로고침해 주세요.</p>`;
         return;
       }
       box.innerHTML = data.map((p) => `

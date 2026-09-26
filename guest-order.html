@@ -13,11 +13,11 @@
 <body>
   <nav id="nav" class="nav"></nav>
 
-  <main class="container" style="max-width: 720px">
+  <main class="container container-medium">
     <h1>비회원 주문 조회</h1>
     <p class="subtitle">결제 완료 화면에 나온 주문번호와 주문할 때 입력한 이메일을 넣어 주세요.</p>
 
-    <form id="lookup-form" class="card" style="margin-bottom: 16px">
+    <form id="lookup-form" class="card stack">
       <div class="field">
         <label for="order-id">주문번호</label>
         <input id="order-id" required placeholder="예: 7a9a80b5-79ea-483e-9796-6b82f4b2f977">
@@ -60,7 +60,7 @@
       btn.disabled = false;
 
       if (error) {
-        errorBox.textContent = "조회하지 못했어요: " + error.message;
+        errorBox.textContent = "조회하지 못했어요. 잠시 후 다시 시도해 주세요.";
         return;
       }
       if (!o) {
@@ -78,7 +78,7 @@
             ${o.order_items.map((i) => `
               <li><span>${esc(i.product_name)} × ${i.quantity}</span><span>${won(i.unit_price * i.quantity)}</span></li>`).join("")}
           </ul>
-          <div class="order-foot"><span>합계${o.payment_method ? ` · ${esc(o.payment_method)}` : ""}</span><span>${won(o.total_amount)}</span></div>
+          <div class="order-foot"><span>총 결제 금액${o.payment_method ? `<span class="order-method">${esc(o.payment_method)}</span>` : ""}</span><span>${won(o.total_amount)}</span></div>
           <div class="order-id">주문번호 ${esc(o.id)}</div>
         </article>`;
     });

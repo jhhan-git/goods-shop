@@ -17,7 +17,7 @@
     <div id="box" class="card result">
       <div class="result-icon">⏳</div>
       <h1>결제를 확인하고 있어요</h1>
-      <p class="subtitle">잠시만 기다려 주세요. 이 창을 닫지 마세요.</p>
+      <p class="subtitle">이 창을 닫지 말고 기다려 주세요.</p>
     </div>
   </main>
 
@@ -40,7 +40,7 @@
         try { detail = await error.context.json(); } catch {}
         const query = new URLSearchParams({
           code: detail.code || "CONFIRM_FAILED",
-          message: detail.message || error.message,
+          message: errorText({ message: detail.message }, "결제를 확인하지 못했어요. 잠시 후 다시 시도해 주세요."),
           orderId: body.orderId || "",
         });
         location.replace("fail.html?" + query);
@@ -56,7 +56,7 @@
           <div><span>주문 상품</span><span>${esc(order.order_name)}</span></div>
           <div><span>결제 금액</span><span><b>${won(order.total_amount)}</b></span></div>
           <div><span>결제 수단</span><span>${esc(order.payment_method || "-")}</span></div>
-          <div><span>주문 번호</span><span class="order-id">${esc(order.id)}</span></div>
+          <div><span>주문번호</span><span class="order-id">${esc(order.id)}</span></div>
         </div>
         ${order.is_guest ? `
         <p class="notice">

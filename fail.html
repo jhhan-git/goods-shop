@@ -17,7 +17,7 @@
     <div class="card result">
       <div class="result-icon">😢</div>
       <h1>결제하지 못했어요</h1>
-      <p class="subtitle" id="message">결제가 취소되었거나 실패했어요.</p>
+      <p class="subtitle" id="message">결제를 취소했거나 결제를 완료하지 못했어요.</p>
       <div class="result-rows">
         <div><span>오류 코드</span><span id="code">-</span></div>
       </div>
@@ -31,7 +31,8 @@
   <script>
     // 토스 또는 success.html에서 넘겨준 실패 이유를 보여 준다
     const params = new URLSearchParams(location.search);
-    if (params.get("message")) document.getElementById("message").textContent = params.get("message");
+    // 영어 메시지는 보여 주지 않고 기본 문구를 그대로 둔다
+    if (/[가-힣]/.test(params.get("message") || "")) document.getElementById("message").textContent = params.get("message");
     if (params.get("code")) document.getElementById("code").textContent = params.get("code");
   </script>
 </body>

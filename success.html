@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>결제 완료 · 굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container container-narrow">
+    <div id="box" class="card result">
+      <div class="result-icon">⏳</div>
+      <h1>결제를 확인하고 있어요</h1>
+      <p class="subtitle">잠시만 기다려 주세요. 이 창을 닫지 마세요.</p>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const box = document.getElementById("box");
+
+    async function confirmPayment() {
+      await requireLogin();
+      const body = {
+        paymentKey: params.get("paymentKey"),
+        orderId: params.get("orderId"),
+        amount: Number(params.get("amount")),
+      };
+
+      // 서버 함수가 금액 검증 + 토스 결제 승인을 처리한다
+      const { data, error } = await sb.functions.invoke("confirm-payment", { body });
+      if (error) {
+        let detail = {};
+        try { detail = await error.context.json(); } catch {}
+        const query = new URLSearchParams({
+          code: detail.code || "CONFIRM_FAILED",
+          message: detail.message || error.message,
+          orderId: body.orderId || "",
+        });
+        location.replace("fail.html?" + query);
+        return;
+      }
+
+      clearCart();
+      const order = data.order;
+      box.innerHTML = `
+        <div class="result-icon">🎉</div>
+        <h1>결제를 완료했어요</h1>
+        <div class="result-rows">
+          <div><span>주문 상품</span><span>${esc(order.order_name)}</span></div>
+          <div><span>결제 금액</span><span><b>${won(order.total_amount)}</b></span></div>
+          <div><span>결제 수단</span><span>${esc(order.payment_method || "-")}</span></div>
+          <div><span>주문 번호</span><span class="order-id">${esc(order.id)}</span></div>
+        </div>
+        <div class="result-actions">
+          <a class="btn" href="orders.html">내 결제 내역 보기</a>
+          <a class="btn btn-ghost" href="index.html">쇼핑 계속하기</a>
+        </div>`;
+    }
+    confirmPayment();
+  </script>
+</body>
+</html>

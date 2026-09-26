@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>장바구니 · 굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://js.tosspayments.com/v2/standard"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container">
+    <h1>장바구니</h1>
+    <p class="subtitle">수량을 확인하고 결제해 주세요. 테스트 결제라 실제로 돈이 나가지 않아요.</p>
+
+    <div id="empty" class="card empty" hidden>
+      장바구니가 비어 있어요.<br><br>
+      <a class="btn" href="index.html">상품 보러 가기</a>
+    </div>
+
+    <div id="cart-layout" class="cart-layout" hidden>
+      <section class="card">
+        <div id="lines"></div>
+      </section>
+
+      <aside class="card summary">
+        <h2>결제 정보</h2>
+        <div class="total-row"><span>총 결제 금액</span><span id="total">0원</span></div>
+
+        <div id="need-login" hidden>
+          <p class="notice">결제하려면 로그인이 필요해요.</p>
+          <a class="btn btn-block" href="login.html?next=cart.html">로그인하고 결제하기</a>
+        </div>
+
+        <div id="checkout" hidden>
+          <div id="payment-method"></div>
+          <div id="agreement"></div>
+          <p id="pay-error" class="error"></p>
+          <button id="pay-btn" class="btn btn-block" disabled>결제하기</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    let products = {};   // id → 상품 정보
+    let user = null;
+    let widgets = null;  // 토스 결제위젯
+    let widgetReady = false;
+
+    function cartLines() {
+      return getCart().filter((i) => products[i.product_id]);
+    }
+
+    function cartTotal() {
+      return cartLines().reduce((sum, i) => sum + products[i.product_id].price * i.quantity, 0);
+    }
+
+    function render() {
+      const lines = cartLines();
+      document.getElementById("empty").hidden = lines.length > 0;
+      document.getElementById("cart-layout").hidden = lines.length === 0;
+
+      document.getElementById("lines").innerHTML = lines.map((i) => {
+        const p = products[i.product_id];
+        return `
+          <div class="cart-line">
+            <div class="cart-emoji">${esc(p.emoji)}</div>
+            <div>
+              <div class="cart-name">${esc(p.name)}</div>
+              <div class="cart-price">${won(p.price)} × ${i.quantity} = <b>${won(p.price * i.quantity)}</b></div>
+            </div>
+            <div class="cart-actions">
+              <div class="qty">
+                <button data-act="minus" data-id="${p.id}" aria-label="수량 줄이기">−</button>
+                <span>${i.quantity}</span>
+                <button data-act="plus" data-id="${p.id}" aria-label="수량 늘리기">+</button>
+              </div>
+              <button class="link-btn" data-act="remove" data-id="${p.id}">삭제</button>
+            </div>
+          </div>`;
+      }).join("");
+
+      const total = cartTotal();
+      document.getElementById("total").textContent = won(total);
+      if (widgetReady && total > 0) widgets.setAmount({ currency: "KRW", value: total });
+    }
+
+    document.getElementById("lines").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const id = Number(btn.dataset.id);
+      const line = getCart().find((i) => i.product_id === id);
+      if (btn.dataset.act === "plus") setCartQuantity(id, line.quantity + 1);
+      if (btn.dataset.act === "minus") setCartQuantity(id, line.quantity - 1);
+      if (btn.dataset.act === "remove") removeFromCart(id);
+      render();
+    });
+
+    // 토스 결제위젯 준비: 금액 설정 → 결제수단 UI → 약관 UI 순서
+    async function setupWidget() {
+      const tossPayments = TossPayments(CONFIG.TOSS_CLIENT_KEY);
+      widgets = tossPayments.widgets({ customerKey: user.id });
+      await widgets.setAmount({ currency: "KRW", value: cartTotal() });
+      await Promise.all([
+        widgets.renderPaymentMethods({ selector: "#payment-method", variantKey: "DEFAULT" }),
+        widgets.renderAgreement({ selector: "#agreement", variantKey: "AGREEMENT" }),
+      ]);
+      widgetReady = true;
+      document.getElementById("pay-btn").disabled = false;
+    }
+
+    document.getElementById("pay-btn").addEventListener("click", async () => {
+      const payBtn = document.getElementById("pay-btn");
+      const errorBox = document.getElementById("pay-error");
+      errorBox.textContent = "";
+      payBtn.disabled = true;
+
+      try {
+        // 1. 주문 만들기 (금액은 서버가 DB 가격으로 계산)
+        const { data, error } = await sb.rpc("create_order", { items: cartLines() });
+        if (error) throw error;
+        const order = data[0];
+
+        // 2. 서버가 계산한 금액으로 결제위젯 금액을 맞춘다
+        await widgets.setAmount({ currency: "KRW", value: order.amount });
+
+        // 3. 토스 결제창 열기
+        const base = new URL(".", location.href).href;
+        await widgets.requestPayment({
+          orderId: order.order_id,
+          orderName: order.order_name,
+          successUrl: base + "success.html",
+          failUrl: base + "fail.html",
+          customerEmail: user.email,
+        });
+      } catch (err) {
+        errorBox.textContent = err.code === "USER_CANCEL" ? "결제를 취소했어요." : (err.message || "결제를 시작하지 못했어요.");
+        payBtn.disabled = false;
+      }
+    });
+
+    async function init() {
+      const ids = getCart().map((i) => i.product_id);
+      if (ids.length) {
+        const { data } = await sb.from("products").select("*").in("id", ids);
+        (data || []).forEach((p) => { products[p.id] = p; });
+      }
+      render();
+      if (cartLines().length === 0) return;
+
+      user = await getUser();
+      if (!user) {
+        document.getElementById("need-login").hidden = false;
+        return;
+      }
+      document.getElementById("checkout").hidden = false;
+      try {
+        await setupWidget();
+      } catch (err) {
+        document.getElementById("pay-error").textContent = "결제창을 준비하지 못했어요: " + err.message;
+      }
+    }
+    init();
+  </script>
+</body>
+</html>

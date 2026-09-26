@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container">
+    <h1>굿즈 둘러보기</h1>
+    <p class="subtitle">마음에 드는 굿즈를 장바구니에 담아 보세요.</p>
+    <div id="products" class="products"><p class="loading">상품을 불러오는 중…</p></div>
+  </main>
+
+  <script>
+    async function loadProducts() {
+      const box = document.getElementById("products");
+      const { data, error } = await sb.from("products").select("*").order("id");
+      if (error) {
+        box.innerHTML = `<p class="error">상품을 불러오지 못했어요: ${esc(error.message)}</p>`;
+        return;
+      }
+      box.innerHTML = data.map((p) => `
+        <article class="card product">
+          <div class="product-thumb">${p.image_url ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}">` : esc(p.emoji)}</div>
+          <div class="product-body">
+            <div class="product-name">${esc(p.name)}</div>
+            <div class="product-desc">${esc(p.description)}</div>
+            <div class="product-price">${won(p.price)}</div>
+            <button class="btn btn-block" data-id="${p.id}">장바구니 담기</button>
+          </div>
+        </article>`).join("");
+
+      box.querySelectorAll("button[data-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          addToCart(Number(btn.dataset.id), 1);
+          toast("장바구니에 담았어요 🛒");
+        });
+      });
+    }
+    loadProducts();
+  </script>
+</body>
+</html>

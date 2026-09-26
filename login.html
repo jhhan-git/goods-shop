@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>로그인 · 굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container container-narrow">
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-mode="login">로그인</button>
+        <button class="tab" data-mode="signup">회원가입</button>
+      </div>
+
+      <form id="auth-form">
+        <div class="field">
+          <label for="email">이메일</label>
+          <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="password">비밀번호</label>
+          <input id="password" type="password" autocomplete="current-password" required minlength="6" placeholder="6자 이상">
+        </div>
+        <div class="field" id="confirm-field" hidden>
+          <label for="password2">비밀번호 확인</label>
+          <input id="password2" type="password" autocomplete="new-password" minlength="6">
+        </div>
+        <p id="error" class="error"></p>
+        <button id="submit" class="btn btn-block" type="submit">로그인</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    let mode = "login";
+    const form = document.getElementById("auth-form");
+    const submit = document.getElementById("submit");
+    const errorBox = document.getElementById("error");
+    const confirmField = document.getElementById("confirm-field");
+
+    // 로그인 후 돌아갈 페이지 (다른 사이트 주소는 허용하지 않음)
+    function nextPage() {
+      const next = new URLSearchParams(location.search).get("next") || "";
+      return /^[\w-]+\.html(\?.*)?$/.test(next) ? next : "index.html";
+    }
+
+    function translateError(message) {
+      if (/Invalid login credentials/i.test(message)) return "이메일 또는 비밀번호가 맞지 않아요.";
+      if (/already registered|already been registered/i.test(message)) return "이미 가입된 이메일이에요. 로그인해 주세요.";
+      if (/at least 6/i.test(message)) return "비밀번호는 6자 이상이어야 해요.";
+      if (/valid email|invalid format/i.test(message)) return "이메일 형식이 올바르지 않아요.";
+      return message;
+    }
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        mode = tab.dataset.mode;
+        document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
+        confirmField.hidden = mode !== "signup";
+        submit.textContent = mode === "signup" ? "회원가입" : "로그인";
+        errorBox.textContent = "";
+      });
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorBox.textContent = "";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (mode === "signup" && password !== document.getElementById("password2").value) {
+        errorBox.textContent = "비밀번호 확인이 일치하지 않아요.";
+        return;
+      }
+
+      submit.disabled = true;
+      const { data, error } = mode === "signup"
+        ? await sb.auth.signUp({ email, password })
+        : await sb.auth.signInWithPassword({ email, password });
+      submit.disabled = false;
+
+      if (error) {
+        errorBox.textContent = translateError(error.message);
+        return;
+      }
+      if (!data.session) {
+        errorBox.textContent = "가입은 됐지만 로그인하지 못했어요. 로그인 탭에서 다시 시도해 주세요.";
+        return;
+      }
+      location.href = nextPage();
+    });
+
+    // 이미 로그인되어 있으면 바로 이동
+    getUser().then((user) => { if (user) location.replace(nextPage()); });
+  </script>
+</body>
+</html>

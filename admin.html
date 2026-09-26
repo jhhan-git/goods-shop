@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>관리자 · 굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container">
+    <div id="denied" class="card empty" hidden>
+      🔒 관리자만 볼 수 있는 페이지예요.<br><br>
+      <a class="btn" href="index.html">홈으로</a>
+    </div>
+
+    <div id="admin" hidden>
+      <h1>전체 결제 내역</h1>
+      <p class="subtitle">모든 회원의 주문과 결제 상태를 확인할 수 있어요.</p>
+
+      <div class="stats">
+        <div class="card"><div class="stat-label">결제 완료 금액</div><div class="stat-value" id="stat-revenue">0원</div></div>
+        <div class="card"><div class="stat-label">결제 완료 건수</div><div class="stat-value" id="stat-paid">0건</div></div>
+        <div class="card"><div class="stat-label">구매한 회원 수</div><div class="stat-value" id="stat-buyers">0명</div></div>
+      </div>
+
+      <div class="card">
+        <div class="filters">
+          <input id="search" type="search" placeholder="구매자 이메일 또는 상품명 검색">
+          <select id="status">
+            <option value="paid">결제 완료</option>
+            <option value="failed">결제 실패</option>
+            <option value="pending">결제 대기</option>
+            <option value="">전체</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>일시</th><th>구매자</th><th>상품</th><th>결제수단</th><th class="num">금액</th><th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="rows"><tr><td colspan="6" class="loading">불러오는 중…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let orders = [];
+
+    function renderStats() {
+      const paid = orders.filter((o) => o.status === "paid");
+      document.getElementById("stat-revenue").textContent = won(paid.reduce((s, o) => s + o.total_amount, 0));
+      document.getElementById("stat-paid").textContent = paid.length.toLocaleString("ko-KR") + "건";
+      document.getElementById("stat-buyers").textContent = new Set(paid.map((o) => o.user_id)).size + "명";
+    }
+
+    function renderRows() {
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      const status = document.getElementById("status").value;
+      const list = orders.filter((o) =>
+        (!status || o.status === status) &&
+        (!q || o.user_email.toLowerCase().includes(q) || o.order_items.some((i) => i.product_name.toLowerCase().includes(q))));
+
+      document.getElementById("rows").innerHTML = list.length === 0
+        ? `<tr><td colspan="6" class="empty">해당하는 결제 내역이 없어요.</td></tr>`
+        : list.map((o) => `
+          <tr>
+            <td>${formatDate(o.approved_at || o.created_at)}<div class="order-id">${esc(o.id.slice(0, 8))}</div></td>
+            <td>${esc(o.user_email)}</td>
+            <td>${o.order_items.map((i) => `${esc(i.product_name)} × ${i.quantity}`).join("<br>")}</td>
+            <td>${esc(o.payment_method || "-")}</td>
+            <td class="num">${won(o.total_amount)}</td>
+            <td>${statusBadge(o.status)}</td>
+          </tr>`).join("");
+    }
+
+    async function init() {
+      await requireLogin();
+      if (!(await isAdmin())) {
+        document.getElementById("denied").hidden = false;
+        return;
+      }
+      document.getElementById("admin").hidden = false;
+
+      // 관리자는 보안 규칙(RLS)에 의해 모든 주문을 볼 수 있다
+      const { data, error } = await sb
+        .from("orders")
+        .select("*, order_items(*)")
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) {
+        document.getElementById("rows").innerHTML = `<tr><td colspan="6" class="error">불러오지 못했어요: ${esc(error.message)}</td></tr>`;
+        return;
+      }
+      orders = data;
+      renderStats();
+      renderRows();
+    }
+
+    document.getElementById("search").addEventListener("input", renderRows);
+    document.getElementById("status").addEventListener("change", renderRows);
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>내 결제 내역 · 굿즈샵</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/common.js"></script>
+</head>
+<body>
+  <nav id="nav" class="nav"></nav>
+
+  <main class="container" style="max-width: 720px">
+    <h1>내 결제 내역</h1>
+    <p class="subtitle">결제를 시도한 주문을 최신순으로 보여 드려요.</p>
+    <div id="orders"><p class="loading">불러오는 중…</p></div>
+  </main>
+
+  <script>
+    async function loadOrders() {
+      const user = await requireLogin();
+      const box = document.getElementById("orders");
+
+      // 결제창을 열기만 하고 끝나지 않은 '결제 대기' 주문은 빼고 보여 준다
+      const { data, error } = await sb
+        .from("orders")
+        .select("*, order_items(*)")
+        .eq("user_id", user.id)
+        .neq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        box.innerHTML = `<p class="error">결제 내역을 불러오지 못했어요: ${esc(error.message)}</p>`;
+        return;
+      }
+      if (data.length === 0) {
+        box.innerHTML = `<div class="card empty">아직 결제한 내역이 없어요.<br><br><a class="btn" href="index.html">상품 보러 가기</a></div>`;
+        return;
+      }
+
+      box.innerHTML = data.map((o) => `
+        <article class="card order">
+          <div class="order-head">
+            <span class="order-date">${formatDate(o.approved_at || o.created_at)}</span>
+            ${statusBadge(o.status)}
+          </div>
+          <ul class="order-items">
+            ${o.order_items.map((i) => `
+              <li><span>${esc(i.product_name)} × ${i.quantity}</span><span>${won(i.unit_price * i.quantity)}</span></li>`).join("")}
+          </ul>
+          <div class="order-foot"><span>합계${o.payment_method ? ` · ${esc(o.payment_method)}` : ""}</span><span>${won(o.total_amount)}</span></div>
+          <div class="order-id">주문번호 ${esc(o.id)}</div>
+        </article>`).join("");
+    }
+    loadOrders();
+  </script>
+</body>
+</html>

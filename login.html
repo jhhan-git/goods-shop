@@ -20,7 +20,7 @@
         <button class="tab" data-mode="signup">회원가입</button>
       </div>
 
-      <form id="auth-form">
+      <form id="auth-form" novalidate>
         <div class="field">
           <label for="email">이메일</label>
           <input id="email" type="email" autocomplete="email" required placeholder="you@example.com">
@@ -49,6 +49,31 @@
     const submit = document.getElementById("submit");
     const errorBox = document.getElementById("error");
     const confirmField = document.getElementById("confirm-field");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const password2Input = document.getElementById("password2");
+
+    function clearErrors() {
+      errorBox.textContent = "";
+      [emailInput, passwordInput, password2Input].forEach((input) => setFieldError(input, ""));
+    }
+
+    // 칸마다 검사하고, 잘못된 칸은 빨갛게 표시한다. 모두 맞으면 true
+    function validate() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      const checks = [
+        setFieldError(emailInput, !email ? "이메일을 입력해 주세요." : !isEmail(email) ? "이메일 형식이 올바르지 않아요." : ""),
+        setFieldError(passwordInput, !password ? "비밀번호를 입력해 주세요."
+          : mode === "signup" && password.length < 6 ? "비밀번호는 6자 이상이어야 해요." : ""),
+        mode === "signup"
+          ? setFieldError(password2Input, password !== password2Input.value ? "비밀번호 확인이 일치하지 않아요." : "")
+          : true,
+      ];
+      const firstInvalid = form.querySelector('[aria-invalid="true"]');
+      if (firstInvalid) firstInvalid.focus();
+      return checks.every(Boolean);
+    }
 
     // 로그인 후 돌아갈 페이지 (다른 사이트 주소는 허용하지 않음)
     function nextPage() {
@@ -73,20 +98,16 @@
         document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
         confirmField.hidden = mode !== "signup";
         submit.textContent = mode === "signup" ? "회원가입" : "로그인";
-        errorBox.textContent = "";
+        clearErrors();
       });
     });
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       errorBox.textContent = "";
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-
-      if (mode === "signup" && password !== document.getElementById("password2").value) {
-        errorBox.textContent = "비밀번호 확인이 일치하지 않아요.";
-        return;
-      }
+      if (!validate()) return;
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
 
       submit.disabled = true;
       const { data, error } = mode === "signup"
@@ -95,7 +116,11 @@
       submit.disabled = false;
 
       if (error) {
-        errorBox.textContent = translateError(error.message);
+        const message = translateError(error.message);
+        // 특정 칸의 문제면 그 칸을 빨갛게, 아니면 폼 아래에 표시
+        if (/already registered|already been registered|valid email|invalid format/i.test(error.message)) setFieldError(emailInput, message);
+        else if (/at least 6/i.test(error.message)) setFieldError(passwordInput, message);
+        else errorBox.textContent = message;
         return;
       }
       if (!data.session) {

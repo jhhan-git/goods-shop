@@ -17,7 +17,7 @@
     <h1>비회원 주문 조회</h1>
     <p class="subtitle">결제 완료 화면에 나온 주문번호와 주문할 때 입력한 이메일을 넣어 주세요.</p>
 
-    <form id="lookup-form" class="card stack">
+    <form id="lookup-form" class="card stack" novalidate>
       <div class="field">
         <label for="order-id">주문번호</label>
         <input id="order-id" required placeholder="예: 7a9a80b5-79ea-483e-9796-6b82f4b2f977">
@@ -42,12 +42,21 @@
       e.preventDefault();
       const errorBox = document.getElementById("error");
       const result = document.getElementById("result");
+      const emailInput = document.getElementById("email");
       const orderId = orderIdInput.value.trim();
+      const email = emailInput.value.trim();
       errorBox.textContent = "";
       result.innerHTML = "";
 
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
-        errorBox.textContent = "주문번호 형식이 올바르지 않아요. 결제 완료 화면의 주문번호 전체를 넣어 주세요.";
+      // 칸마다 검사해서 잘못된 칸을 빨갛게 표시
+      const okOrder = setFieldError(orderIdInput,
+        !orderId ? "주문번호를 입력해 주세요."
+        : !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)
+          ? "주문번호 형식이 올바르지 않아요. 결제 완료 화면의 주문번호 전체를 넣어 주세요." : "");
+      const okEmail = setFieldError(emailInput,
+        !email ? "이메일을 입력해 주세요." : !isEmail(email) ? "이메일 형식이 올바르지 않아요." : "");
+      if (!okOrder || !okEmail) {
+        document.querySelector('[aria-invalid="true"]').focus();
         return;
       }
 
@@ -55,7 +64,7 @@
       btn.disabled = true;
       const { data: o, error } = await sb.rpc("find_guest_order", {
         p_order_id: orderId,
-        p_email: document.getElementById("email").value,
+        p_email: email,
       });
       btn.disabled = false;
 

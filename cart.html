@@ -133,9 +133,14 @@
 
       try {
         const guest = isGuest(user);
-        const guestEmail = document.getElementById("guest-email").value.trim();
-        if (guest && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(guestEmail)) {
-          throw new Error("주문 확인에 쓸 이메일을 정확히 입력해 주세요.");
+        const guestInput = document.getElementById("guest-email");
+        const guestEmail = guestInput.value.trim();
+        // 비회원 이메일이 잘못되면 그 칸을 빨갛게 표시하고 멈춘다
+        if (guest && !setFieldError(guestInput,
+          !guestEmail ? "주문 확인용 이메일을 입력해 주세요." : !isEmail(guestEmail) ? "이메일 형식이 올바르지 않아요." : "")) {
+          guestInput.focus();
+          payBtn.disabled = false;
+          return;
         }
 
         // 1. 주문 만들기 (금액은 서버가 DB 가격으로 계산)

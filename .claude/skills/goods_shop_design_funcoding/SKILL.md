@@ -17,19 +17,75 @@ description: 우리 굿즈 사이트의 모든 페이지를 같은 디자인 톤
 
 ---
 
+## 기준 예시 — 모든 페이지는 이 스타일을 따른다
+
+### 좋은 버튼 예시
+- 손가락으로 편하게 누를 만큼 크게
+- 모서리는 부드럽게 둥근 모양
+- 색은 화면에서 가장 잘 보이게
+
+```html
+<button class="btn btn-block" type="submit">결제하기</button>
+```
+
+| 요구 | 이렇게 만든다 (`.btn`에 이미 들어 있음) |
+|---|---|
+| 손가락으로 누르기 편하게 | 높이 **48px 이상**(`min-height: var(--tap-main)`), 좌우 여백 20px. 폰에서는 `.btn-block`으로 폭 전체 |
+| 부드럽게 둥근 모서리 | `border-radius: 10px` (카드는 14px, 배지는 알약 모양) |
+| 화면에서 가장 잘 보이는 색 | 진한 파랑 `var(--primary)` 배경 + 흰 글씨 `var(--on-color)`, 글씨 16px·굵기 600. **글씨와 배경의 대비 4.5:1 이상**(지금 5.4:1). 파란 버튼은 화면에 하나뿐이라 눈이 바로 간다 |
+
+- 보조 행동은 회색 `.btn-ghost`, 삭제는 빨간 `.btn-danger`로 **모양은 같고 색만** 다르게 한다.
+- ❌ 이렇게 하지 않는다: 밑줄 글씨 버튼, 높이 30px대 작은 버튼, 모서리가 각진 버튼, 연한 색 배경에 흰 글씨(잘 안 보임), 한 화면에 파란 버튼 여러 개
+
+### 좋은 입력칸 예시
+- 입력칸 위에 무엇을 적는 칸인지 라벨 표시
+- 잘못 입력하면 빨간색으로 알려주기
+
+```html
+<form id="my-form" novalidate>
+  <div class="field">
+    <label for="email">이메일</label>
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+    <span class="hint">주문 확인에 필요해요.</span>
+  </div>
+  <button class="btn btn-block" type="submit">조회하기</button>
+</form>
+```
+```js
+const emailInput = document.getElementById("email");
+const email = emailInput.value.trim();
+// 잘못되면 칸이 빨개지고 칸 바로 아래에 "⚠ 이유"가 나온다. 다시 입력하면 저절로 사라진다.
+if (!setFieldError(emailInput, !email ? "이메일을 입력해 주세요." : !isEmail(email) ? "이메일 형식이 올바르지 않아요." : "")) {
+  emailInput.focus();
+  return;
+}
+```
+
+| 요구 | 이렇게 만든다 |
+|---|---|
+| 위에 라벨 표시 | 모든 입력칸은 `.field` 안에서 **`<label for>` → `<input>` → `.hint`(필요할 때)** 순서. 라벨은 16px 굵게. `placeholder`는 입력 예시일 뿐 라벨을 대신하지 않는다 |
+| 잘못 입력하면 빨간색 | `setFieldError(input, "이유")`(`js/common.js`) 사용 → 칸 테두리·배경이 빨갛게(`aria-invalid="true"`), 칸 **바로 아래**에 빨간 `⚠ 이유` 문구(`.field-error`). 오류 문구는 용어집 말투: "~을 입력해 주세요." / "~ 형식이 올바르지 않아요." |
+
+- 폼에는 `novalidate`를 붙여 브라우저 기본 말풍선 대신 이 방식으로만 알려 준다.
+- 검사는 **[제출] 버튼을 눌렀을 때** 한 번에 하고, 잘못된 첫 칸으로 커서를 옮긴다(`focus()`).
+- 칸 하나의 문제가 아닌 오류(예: "이메일 또는 비밀번호가 맞지 않아요.")는 버튼 위 `.error`에 보여 준다.
+- ❌ 이렇게 하지 않는다: 라벨 없이 placeholder만, `alert()`로 오류 알리기, 폼 맨 위에만 오류 문구, 빨간색만 바꾸고 이유는 안 쓰기
+
+---
+
 ## 1. 같은 색 · 같은 버튼 모양
 
 ### 색은 변수로만 쓴다
-`style.css`의 `:root` 변수만 사용한다. `#3182f6` 같은 색 코드를 새로 쓰지 않는다.
+`style.css`의 `:root` 변수만 사용한다. `#1b64da` 같은 색 코드를 새로 쓰지 않는다. 색을 바꿔야 하면 변수 값을 바꾸고, **글씨와 배경의 대비가 4.5:1 이상**인지 확인한다.
 
 | 변수 | 쓰임 |
 |---|---|
-| `--primary` / `--primary-dark` / `--primary-soft` | 주요 버튼, 강조, 안내 박스(`.notice`) 배경 |
+| `--primary` / `--primary-dark` / `--primary-soft` | 주요 버튼(흰 글씨 대비 5.4:1), 눌렀을 때, 안내 박스(`.notice`) 배경 |
 | `--text` / `--muted` | 본문 글씨 / 보조 설명 글씨 |
 | `--bg` / `--surface` / `--line` | 페이지 배경 / 카드 배경 / 구분선 |
 | `--success(-soft)` | 결제 완료 |
 | `--warn(-soft)` | 결제 대기 |
-| `--danger(-soft)` | 결제 실패, 오류, 삭제 |
+| `--danger(-soft)` | 결제 실패, 오류 문구, 잘못 입력한 칸, 삭제 버튼 (대비 5.3:1) |
 | `--danger-dark` | 삭제 버튼을 눌렀을 때 |
 | `--accent-soft` | 상품 썸네일 배경 그라데이션 |
 | `--on-color` | 색 배경(버튼, 알림, 숫자 배지) 위의 흰 글씨 |
@@ -57,8 +113,9 @@ description: 우리 굿즈 사이트의 모든 페이지를 같은 디자인 톤
 |---|---|
 | 흰 박스 | `.card` |
 | 상태 표시 | `statusBadge(status)` 함수 (`.badge-paid` / `-pending` / `-failed`), 비회원 표시 `.badge-guest` |
-| 입력칸 묶음 | `.field` > `label` + `input` + `.hint` |
-| 오류 문구 | `.error` |
+| 입력칸 묶음 | `.field` > `label` + `input` + `.hint` ([좋은 입력칸 예시](#좋은-입력칸-예시)) |
+| 칸별 오류 표시 | `setFieldError(input, "이유")` / 이메일 검사 `isEmail(value)` |
+| 폼 전체 오류 문구 | `.error` |
 | 파란 안내 박스 | `.notice` |
 | 빈 화면 | `.card.empty` > `<p>안내 문장</p>` + 행동 버튼 1개 |
 | 폭 좁은 페이지 | `.container.container-medium`(720px, 목록) / `.container-narrow`(480px, 폼·결과) |
@@ -187,6 +244,8 @@ description: 우리 굿즈 사이트의 모든 페이지를 같은 디자인 톤
 - [ ] 버튼은 `.btn` / `.btn-ghost` / `.btn-danger`뿐이고, 파란 버튼은 화면당 하나다
 - [ ] 본문·버튼·입력칸 글씨가 16px 이상, 보조 글씨가 14px 이상이다
 - [ ] 누를 수 있는 것은 모두 44px 이상이고, 주요 버튼은 48px 이상이다
+- [ ] 버튼 글씨와 배경의 대비가 4.5:1 이상이다
+- [ ] 모든 입력칸 위에 라벨이 있고, 잘못 입력하면 `setFieldError`로 그 칸이 빨개지며 이유가 나온다
 - [ ] 375px 폭에서 가로 스크롤이 없고, 두 칸 배치가 한 칸으로 쌓인다
 - [ ] 문구가 해요체이고 용어집 표현과 같다 (삭제 확인은 "삭제할까요?")
 - [ ] 오류 문구가 한국어이고, 무엇이 문제인지와 해결 방법을 알려 준다

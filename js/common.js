@@ -33,6 +33,33 @@ function errorText(err, fallback) {
   return /[가-힣]/.test(message) ? message : fallback;
 }
 
+// 입력칸 오류 표시: 칸을 빨갛게 하고 칸 바로 아래에 이유를 보여 준다. message가 없으면 지운다.
+// 다시 입력하기 시작하면 자동으로 지워진다.
+function setFieldError(input, message) {
+  const field = input.closest(".field");
+  let box = field.querySelector(".field-error");
+  if (!box) {
+    box = document.createElement("p");
+    box.className = "field-error";
+    box.id = input.id + "-error";
+    field.appendChild(box);
+  }
+  box.textContent = message || "";
+  box.hidden = !message;
+  if (message) {
+    input.setAttribute("aria-invalid", "true");
+    input.setAttribute("aria-describedby", box.id);
+    input.addEventListener("input", () => setFieldError(input, ""), { once: true });
+  } else {
+    input.removeAttribute("aria-invalid");
+  }
+  return !message;
+}
+
+function isEmail(value) {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value);
+}
+
 function won(n) {
   return Number(n).toLocaleString("ko-KR") + "원";
 }
